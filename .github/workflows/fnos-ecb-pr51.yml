@@ -1,0 +1,65 @@
+name: Build FnOS for ECB-PR51
+
+on:
+  workflow_dispatch:
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone FnOS Repository
+        run: |
+          git clone --depth 1 https://github.com/ophub/fnnas.git /tmp/fnnas
+          cd /tmp/fnnas
+          ls -la
+
+      - name: Add ECB-PR51 to Model Database
+        run: |
+          echo "Adding ECB-PR51 to FnOS model database..."
+          # Add ECB-PR51 entry to model_database.conf
+          # Format: ID MODEL SOC FDTFILE UBOOT_OVERLOAD MAINLINE_UBOOT BOOTLOADER_IMG DESCRIPTION KERNEL_TAGS PLATFORM FAMILY BOOT_CONF CONTRIBUTORS BOARD BUILD
+          echo 'r999    :Lenovo-ECB-PR51                             :rk3568   :rk3568-ecb-pr51.dtb                    :NA                           :u-boot.itb                          :idbloader.img                   :8GB-DDR4,32GB-eMMC,2x1Gb-Nic,3xSATA,2xUSB3.0 :rk35xx/6.1.y          :rockchip    :rk3568       :fnnasEnv.txt   :cuihao99090587                                      :rk3568-ecb-pr51     :yes' >> /tmp/fnnas/make-fnnas/fnnas-files/common-files/etc/model_database.conf
+          echo "Added ECB-PR51 entry:"
+          tail -5 /tmp/fnnas/make-fnnas/fnnas-files/common-files/etc/model_database.conf
+
+      - name: Add ECB-PR51 Device Tree
+        run: |
+          echo "Adding ECB-PR51 device tree..."
+          # Create dtb directory if not exists
+          mkdir -p /tmp/fnnas/make-fnnas/fnnas-files/platform-files/rockchip/bootfs/dtb/rockchip/
+          cp .github/workflows/rk3568-ecb-pr51-final.dts /tmp/fnnas/make-fnnas/fnnas-files/platform-files/rockchip/bootfs/dtb/rockchip/rk3568-ecb-pr51.dtb
+          cp .github/workflows/rk3568-ecb-pr51.dts /tmp/fnnas/make-fnnas/fnnas-files/platform-files/rockchip/bootfs/dtb/rockchip/rk3568-ecb-pr51-overlay.dtb
+          echo "Device tree files:"
+          ls -la /tmp/fnnas/make-fnnas/fnnas-files/platform-files/rockchip/bootfs/dtb/rockchip/ | grep ecb
+
+      - name: Download FnOS Base Image
+        run: |
+          mkdir -p /tmp/fnnas/make-fnnas/output/images
+          wget -q --show-progress \
+            "https://github.com/ophub/fnnas/releases/download/fnnas_base_image/fnnas-official-arm64-image_rockchip_692.img.xz" \
+            -O /tmp/fnnas/make-fnnas/output/images/fnnas.img.xz
+          cd /tmp/fnnas/make-fnnas/output/images
+          xz -d fnnas.img.xz
+          ls -lh
+
+      - name: Package FnOS for ECB-PR51
+        run: |
+          cd /tmp/fnnas
+          echo "Starting FnOS rebuild for ECB-PR51..."
+          sudo ./rebuild -b rk3568-ecb-pr51 -k 6.12.y -a true -n fnos-ecb-pr51
+
+      - name: Upload to Release
+        if: success()
+        uses: ncipollo/release-action@main
+        with:
+          tag: FnOS_ECB-PR51_${{ github.run_number }}
+          artifacts: /tmp/fnnas/make-fnnas/output/images/*.img.gz
+          allowUpdates: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
