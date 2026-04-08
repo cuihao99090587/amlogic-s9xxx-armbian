@@ -20,8 +20,11 @@ jobs:
           armbian_path: https://github.com/ophub/amlogic-s9xxx-armbian/releases/download/Armbian_trixie_arm64_server_2026.04/Armbian_26.02.0_rockchip_leez_trixie_6.12.79_server_2026.04.01.img.gz
           armbian_board: rk3568
           armbian_kernel: 6.12.y
+          auto_kernel: true
           kernel_repo: ophub/kernel
           kernel_usage: stable
+          armbian_fstype: ext4
+          armbian_size: 512/2560
           builder_name: fnos-ecb-pr51
 
       - name: Upload to Release
