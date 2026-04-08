@@ -1,0 +1,37 @@
+name: Build FnOS for ECB-PR51 (Fixed)
+
+on:
+  workflow_dispatch:
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Armbian
+        uses: ophub/amlogic-s9xxx-armbian@main
+        with:
+          build_target: armbian
+          armbian_path: https://github.com/ophub/amlogic-s9xxx-armbian/releases/download/Armbian_trixie_arm64_server_2026.04/Armbian_26.02.0_rockchip_leez_trixie_6.12.79_server_2026.04.01.img.gz
+          armbian_board: rk3568
+          armbian_kernel: 6.12.y
+          kernel_usage: rk35xx
+          kernel_repo: ophub/kernel
+          builder_name: fnos-ecb-pr51
+          armbian_fstype: ext4
+          armbian_size: 512/2560
+
+      - name: Upload to Release
+        if: ${{ env.PACKAGED_STATUS == 'success' }}
+        uses: ncipollo/release-action@main
+        with:
+          tag: FnOS_ECB-PR51_${{ github.run_number }}
+          artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
+          allowUpdates: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
