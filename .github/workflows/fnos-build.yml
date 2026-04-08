@@ -1,0 +1,62 @@
+name: Build FnOS for ECB-PR51
+
+on:
+  workflow_dispatch:
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone FnOS Repository
+        run: |
+          git clone --depth 1 https://github.com/ophub/fnnas.git /tmp/fnnas
+          cd /tmp/fnnas
+          ls -la
+
+      - name: Add ECB-PR51 Device Tree
+        run: |
+          echo "Adding ECB-PR51 device tree..."
+          cp .github/workflows/rk3568-ecb-pr51-final.dts /tmp/fnnas/make-fnnas/fnnas-files/platform-files/rockchip/bootfs/dtb/rockchip/
+          cp .github/workflows/rk3568-ecb-pr51.dts /tmp/fnnas/make-fnnas/fnnas-files/platform-files/rockchip/bootfs/dtb/rockchip/
+          ls -la /tmp/fnnas/make-fnnas/fnnas-files/platform-files/rockchip/bootfs/dtb/rockchip/ | grep ecb
+
+      - name: Add ECB-PR51 to Database
+        run: |
+          echo "Adding ECB-PR51 to model database..."
+          # Add to FnOS model database with RK35XX kernel tags
+          echo 'NA Lenovo-ECB-PR51 rk3568 rk3568-ecb-pr51.dtb NA NA NA "Lenovo ECB-PR51 RK3568" kernel_rk35xx/6.1.y rockchip rk3568 yes NA rk3568-ecb-pr51 yes' >> /tmp/fnnas/make-fnnas/fnnas-files/common-files/etc/model_database.conf
+          tail -5 /tmp/fnnas/make-fnnas/fnnas-files/common-files/etc/model_database.conf
+
+      - name: Download FnOS Base Image
+        run: |
+          mkdir -p /tmp/fnnas/make-fnnas/output/images
+          # Use official FnOS base image or Armbian server image
+          wget -q --show-progress \
+            "https://github.com/ophub/fnnas/releases/download/fnnas_rockchip_692/fnnas_rockchip_leez_k6.12.41_2026.03.22.img.gz" \
+            -O /tmp/fnnas/make-fnnas/output/images/fnnas.img.gz
+          cd /tmp/fnnas/make-fnnas/output/images
+          gunzip -f fnnas.img.gz
+          ls -lh
+
+      - name: Package FnOS for ECB-PR51
+        run: |
+          cd /tmp/fnnas
+          echo "Starting FnOS rebuild..."
+          # Use FnOS rebuild script
+          sudo ./rebuild -b rk3568-ecb-pr51 -k 6.12.y -a true -n fnos-ecb-pr51
+
+      - name: Upload to Release
+        if: success()
+        uses: ncipollo/release-action@main
+        with:
+          tag: FnOS_ECB-PR51_${{ github.run_number }}
+          artifacts: /tmp/fnnas/make-fnnas/output/images/*.img.gz
+          allowUpdates: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
