@@ -18,9 +18,9 @@ jobs:
         with:
           build_target: armbian
           armbian_path: https://github.com/ophub/amlogic-s9xxx-armbian/releases/download/Armbian_trixie_arm64_server_2026.04/Armbian_26.02.0_rockchip_leez_trixie_6.12.79_server_2026.04.01.img.gz
-          KERNEL_TAGS: 'stable' # 添加这一行
           armbian_board: rk3568
           armbian_kernel: 6.12.y
+          kernel_repo: ophub/kernel
           kernel_usage: stable
           builder_name: fnos-ecb-pr51
 
