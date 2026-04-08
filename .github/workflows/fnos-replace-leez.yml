@@ -1,0 +1,56 @@
+name: Build FnOS for ECB-PR51 (Replace leez DTB before build)
+
+on:
+  workflow_dispatch:
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Clone FnOS and Replace leez DTB with ECB-PR51
+        run: |
+          echo "Cloning FnOS repository..."
+          git clone --depth 1 https://github.com/ophub/fnnas.git /tmp/fnnas
+          
+          echo "Replacing leez device tree with ECB-PR51 device tree..."
+          
+          # Backup original leez DTB
+          cd /tmp/fnnas/make-fnnas/fnnas-files/platform-files/rockchip/bootfs/dtb/rockchip/
+          sudo cp rk3568-leez.dtb rk3568-leez.dtb.bak
+          
+          # Copy ECB-PR51 DTS and compile to DTB
+          cp $GITHUB_WORKSPACE/.github/workflows/rk3568-ecb-pr51-final.dts rk3568-leez.dts
+          
+          # Compile DTB
+          sudo dtc -I dts -O dtb -o rk3568-leez.dtb rk3568-leez.dts
+          
+          echo "DTB replacement complete!"
+          ls -la rk3568-leez*
+
+      - name: Package FnOS (using leez board = ECB-PR51)
+        uses: ophub/fnnas@main
+        with:
+          build_target: fnnas
+          fnnas_path: https://github.com/ophub/fnnas/releases/download/fnnas_base_image/fnnas-official-arm64-image_rockchip_692.img.xz
+          fnnas_board: leez
+          fnnas_kernel: 6.12.y
+          auto_kernel: true
+          kernel_repo: ophub/fnnas
+          rootfs_expand: 16
+          builder_name: fnos-ecb-pr51
+
+      - name: Upload to Release
+        if: ${{ env.PACKAGED_STATUS == 'success' }}
+        uses: ncipollo/release-action@main
+        with:
+          tag: FnOS_ECB-PR51_${{ github.run_number }}
+          artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
+          allowUpdates: true
+          makeLatest: true
+          token: ${{ secrets.GITHUB_TOKEN }}
