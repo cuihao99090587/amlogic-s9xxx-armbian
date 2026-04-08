@@ -26,11 +26,12 @@ jobs:
           cp .github/workflows/rk3568-ecb-pr51.dts /tmp/ophub/build-armbian/armbian-files/platform-files/rockchip/bootfs/dtb/rockchip/
           ls -la /tmp/ophub/build-armbian/armbian-files/platform-files/rockchip/bootfs/dtb/rockchip/ | grep ecb
 
-      - name: Add ECB-PR51 to Model Database
+      - name: Add ECB-PR51 to Database
         run: |
           echo "Adding ECB-PR51 to model database..."
-          # Format: ID:MODEL:SOC:DTB:UBOOT:UBOOT_IMG:LOADER:DESC:KERNEL_TAGS:FAMILY:BOARD:ENV:CONTRIBUTORS:BOARD_NAME:BUILD:ENABLED
-          echo 'ecb-pr51:Lenovo ECB-PR51:rk3568:rk3568-ecb-pr51-final.dtb:NA:u-boot.itb:idbloader.img:8GB-DDR4-32G-eMMC-Dual-GbE:stable/6.12.y:rockchip:rk3568:armbianEnv.txt:fnos-builder:ecb-pr51:yes' >> /tmp/ophub/build-armbian/armbian-files/common-files/etc/model_database.conf
+          # Format: ID MODEL SOC FDTFILE UBOOT_OVERLOAD MAINLINE_UBOOT BOOTLOADER_IMG DESCRIPTION KERNEL_TAGS PLATFORM FAMILY BOOT_CONF CONTRIBUTORS BOARD BUILD
+          # Column 9 (KERNEL_TAGS): kernel_rk35xx/6.1.y for RK3568
+          echo 'NA Lenovo-ECB-PR51 rk3568 rk3568-ecb-pr51.dtb NA NA NA "Lenovo ECB-PR51 RK3568" kernel_rk35xx/6.1.y rockchip rk3568 yes NA rk3568-ecb-pr51 yes' >> /tmp/ophub/build-armbian/armbian-files/common-files/etc/model_database.conf
           tail -5 /tmp/ophub/build-armbian/armbian-files/common-files/etc/model_database.conf
 
       - name: Download Armbian Image
@@ -47,7 +48,7 @@ jobs:
         run: |
           cd /tmp/ophub
           echo "Starting rebuild..."
-          sudo ./rebuild -b ecb-pr51 -k 6.12.y -a true -n fnos-ecb-pr51
+          sudo ./rebuild -b rk3568-ecb-pr51 -k 6.12.y -a true -n fnos-ecb-pr51
 
       - name: Upload to Release
         if: success()
